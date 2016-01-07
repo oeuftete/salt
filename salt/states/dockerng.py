@@ -872,6 +872,20 @@ def running(name,
                 - image: bar/baz:latest
                 - memory_swap: 1G
 
+    oom_kill_disable : False
+        By default, kernel kills processes in a container if an out-of-memory
+        (OOM) error occurs. To change this behaviour, set this value to
+        ``False`.  Only set this when ``memory`` and/or ``memory_swap`` have
+        been set.
+
+        .. code-block:: yaml
+
+            foo:
+              dockerng.running:
+                - image: bar/baz:latest
+                - memory: 512M
+                - oom_kill_disable: True
+
     mac_address
         MAC address to use for the container. If not specified, a random MAC
         address will be used.

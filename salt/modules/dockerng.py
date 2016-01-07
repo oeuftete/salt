@@ -390,12 +390,12 @@ VALID_CREATE_OPTS = {
     },
     'memory': {
         'api_name': 'mem_limit',
-        'path': 'Config:Memory',
+        'path': 'HostConfig:Memory',
         'default': 0,
     },
     'memory_swap': {
         'api_name': 'memswap_limit',
-        'path': 'Config:MemorySwap',
+        'path': 'HostConfig:MemorySwap',
         'default': 0,
     },
     'mac_address': {
@@ -424,7 +424,7 @@ VALID_CREATE_OPTS = {
     },
     'cpu_shares': {
         'validator': 'number',
-        'path': 'Config:CpuShares',
+        'path': 'HostConfig:CpuShares',
     },
     'cpuset': {
         'path': 'Config:Cpuset',
@@ -490,6 +490,12 @@ VALID_CREATE_OPTS = {
     'pid_mode': {
         'path': 'HostConfig:PidMode',
         'min_docker': (1, 5, 0)
+    },
+    'oom_kill_disable': {
+        'validator': 'bool',
+        'path': 'HostConfig:OomKillDisable',
+        'default': False,
+        'min_docker': (1, 7, 0),
     },
 }
 
