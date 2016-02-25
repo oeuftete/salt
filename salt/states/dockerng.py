@@ -190,6 +190,8 @@ def _compare(actual, create_kwargs, defaults_from_image):
             # port/protocol pairs (as found in the "actual" dict).
             if actual_data is None:
                 actual_data = []
+            if data is None:
+                data = []
             actual_ports = sorted(actual_data)
             desired_ports = []
             for port_def in data:
