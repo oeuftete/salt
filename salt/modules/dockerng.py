@@ -2217,7 +2217,9 @@ def list_containers(**kwargs):
     for item in six.itervalues(ps_(all=kwargs.get('all', False))):
         for c_name in [x.lstrip('/') for x in item.get('Names', []) or []]:
             ret.add(c_name)
-    return sorted(ret)
+
+    return sorted(map((lambda x: x if '/' not in x else x.partition('/')[2]),
+                      ret))
 
 
 def list_tags():
