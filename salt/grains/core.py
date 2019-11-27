@@ -625,7 +625,7 @@ def _windows_virtual(osdata):
     if osdata['kernel'] != 'Windows':
         return grains
 
-    grains['virtual'] = 'physical'
+    grains.setdefault('virtual', 'physical')
 
     # It is possible that the 'manufacturer' and/or 'productname' grains
     # exist but have a value of None.
@@ -668,6 +668,9 @@ def _windows_virtual(osdata):
     elif 'CloudStack KVM Hypervisor' in productname:
         grains['virtual'] = 'kvm'
         grains['virtual_subtype'] = 'cloudstack'
+    # OpenStack Nova
+    elif 'OpenStack' in productname:
+        grains['virtual'] = 'OpenStack'
     return grains
 
 
