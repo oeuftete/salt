@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 '''
-This runner is used only for test purposes and servers no production purpose
+This runner is used only for test purposes and serves no production purpose
 '''
-from __future__ import absolute_import, print_function, unicode_literals
 # Import python libs
+from __future__ import absolute_import, print_function, unicode_literals
+import logging
 import time
+
 from salt.ext import six
 from salt.ext.six.moves import range
+
+log = logging.getLogger(__name__)
 
 
 def arg(*args, **kwargs):
@@ -58,9 +62,9 @@ def stdout_print():
 
 def sleep(s_time=10):
     '''
-    Sleep t seconds, then return True
+    Sleep ``s_time`` seconds, then return True
     '''
-    print(s_time)
+    log.info('Sleeping for %d seconds', s_time)
     time.sleep(s_time)
     return True
 
