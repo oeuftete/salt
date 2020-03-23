@@ -10,6 +10,7 @@ docker
 futures>=2.0; python_version < '3.0'
 GitPython
 hgtools
+inotify_simple
 jmespath
 jsonschema
 junos-eznc
@@ -24,7 +25,6 @@ moto
 paramiko>=2.1.6
 psutil
 pygit2
-pyinotify
 pyopenssl
 python-etcd>0.4.2
 python-gnupg

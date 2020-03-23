@@ -15,16 +15,16 @@ from tests.support.unit import skipIf, TestCase
 from tests.support.mixins import LoaderModuleMockMixin
 # Third-party libs
 try:
-    import pyinotify  # pylint: disable=unused-import
-    HAS_PYINOTIFY = True
+    import inotify_simple  # pylint: disable=unused-import
+    HAS_INOTIFY_SIMPLE = True
 except ImportError:
-    HAS_PYINOTIFY = False
+    HAS_INOTIFY_SIMPLE = False
 
 import logging
 log = logging.getLogger(__name__)
 
 
-@skipIf(not HAS_PYINOTIFY, 'pyinotify is not available')
+@skipIf(not HAS_INOTIFY_SIMPLE, 'inotify_simple is not available')
 class INotifyBeaconTestCase(TestCase, LoaderModuleMockMixin):
     '''
     Test case for salt.beacons.inotify

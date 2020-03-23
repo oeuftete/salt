@@ -8,10 +8,10 @@ import shutil
 import tempfile
 import time
 try:
-    import pyinotify  # pylint: disable=unused-import
-    HAS_PYINOTIFY = True
+    import inotify_simple  # pylint: disable=unused-import
+    HAS_INOTIFY_SIMPLE = True
 except ImportError:
-    HAS_PYINOTIFY = False
+    HAS_INOTIFY_SIMPLE = False
 
 # Import Salt Testing libs
 from tests.support.case import MultimasterModuleCase
@@ -26,7 +26,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-@skipIf(not HAS_PYINOTIFY, 'pyinotify is not available')
+@skipIf(not HAS_INOTIFY_SIMPLE, 'inotify_simple is not available')
 class TestBeaconsInotify(MultimasterModuleCase, AdaptedConfigurationTestCaseMixin):
     '''
     Validate the inotify beacon in multimaster environment

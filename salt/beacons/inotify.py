@@ -2,7 +2,7 @@
 '''
 Watch files and translate the changes into salt events
 
-:depends:   - pyinotify Python module >= 0.9.5
+:depends:   - inotify_simple Python module >= 1.3.3
 
 :Caution:   Using generic mask options like open, access, ignored, and
             closed_nowrite with reactors can easily cause the reactor
@@ -30,16 +30,16 @@ from salt.ext.six.moves import map
 
 # Import third party libs
 try:
-    import pyinotify
-    HAS_PYINOTIFY = True
-    DEFAULT_MASK = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY
+    from inotify_simple import flags
+    HAS_INOTIFY_SIMPLE = True
+    DEFAULT_MASK = flags.CREATE | flags.DELETE | flags.MODIFY
     MASKS = {}
-    for var in dir(pyinotify):
-        if var.startswith('IN_'):
-            key = var[3:].lower()
-            MASKS[key] = getattr(pyinotify, var)
+    for var in dir(flags):
+        if var[0].isupper():
+            key = var.lower()
+            MASKS[key] = int(getattr(flags, var))
 except ImportError:
-    HAS_PYINOTIFY = False
+    HAS_INOTIFY_SIMPLE = False
     DEFAULT_MASK = None
 
 __virtualname__ = 'inotify'
@@ -48,7 +48,7 @@ log = logging.getLogger(__name__)
 
 
 def __virtual__():
-    if HAS_PYINOTIFY:
+    if HAS_INOTIFY_SIMPLE:
         return __virtualname__
     return False
 
