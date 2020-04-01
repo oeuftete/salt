@@ -26,6 +26,7 @@ from salt.defaults import DEFAULT_TARGET_DELIM
 from salt.exceptions import SaltException
 from salt.utils.decorators.jinja import jinja_filter
 from salt.utils.odict import OrderedDict
+from salt.utils.debug import caller_name
 
 # Import 3rd-party libs
 from salt.ext.six.moves import zip  # pylint: disable=redefined-builtin
@@ -685,10 +686,19 @@ def subdict_match(data,
                     return True
         return ret
 
+    log.debug('subdict_match: caller: %s', caller_name(include_lineno=True))
+    log.debug('subdict_match: data: %s', data)
+
     splits = expr.split(delimiter)
     num_splits = len(splits)
+
+    if data:
+        log.debug('subdict_match: [%s] evaluating %d split token(s): %s',
+                  data.get('id', '(no id?)'), num_splits, splits)
+
     if num_splits == 1:
         # Delimiter not present, this can't possibly be a match
+        log.debug("subdict_match: no delimiter, can't match")
         return False
 
     # If we have 4 splits, then we have three delimiters. Thus, the indexes we
@@ -703,16 +713,23 @@ def subdict_match(data,
         else:
             matchstr = delimiter.join(splits[idx:])
             match = traverse_dict_and_list(data, key, {}, delimiter=delimiter)
-        log.debug("Attempting to match '%s' in '%s' using delimiter '%s'",
+
+        log.debug("subdict_match: "
+                  "Attempting to match '%s' in '%s' using delimiter '%s'",
                   matchstr, key, delimiter)
+
         if match == {}:
+            log.debug("subdict_match: no match data")
             continue
+
         if isinstance(match, dict):
             if _dict_match(match,
                            matchstr,
                            regex_match=regex_match,
                            exact_match=exact_match):
+                log.debug("subdict_match: (dict) _dict_match matched")
                 return True
+            log.debug("subdict_match: (dict) _dict_match missed")
             continue
         if isinstance(match, (list, tuple)):
             # We are matching a single component to a single list member
@@ -722,18 +739,24 @@ def subdict_match(data,
                                    matchstr,
                                    regex_match=regex_match,
                                    exact_match=exact_match):
+                        log.debug("subdict_match: (list-dict) _dict_match matched")
                         return True
                 if _match(member,
                           matchstr,
                           regex_match=regex_match,
                           exact_match=exact_match):
+                    log.debug("subdict_match: (list-string) _match matched")
                     return True
+            log.debug("subdict_match: (list) matches missed")
             continue
         if _match(match,
                   matchstr,
                   regex_match=regex_match,
                   exact_match=exact_match):
+            log.debug("subdict_match: (string) _match matched")
             return True
+
+    log.debug("subdict_match: no matches")
     return False
 
 
