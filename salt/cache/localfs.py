@@ -78,20 +78,30 @@ def fetch(bank, key, cachedir):
     '''
     inkey = False
     key_file = os.path.join(cachedir, os.path.normpath(bank), '{0}.p'.format(key))
+    log.debug('Will fetch cached data for key "%s" from key_file "%s", bank "%s"...',
+              key, key_file, bank)
     if not os.path.isfile(key_file):
+        log.debug('... no file key_file "%s" found ...', key_file)
         # The bank includes the full filename, and the key is inside the file
         key_file = os.path.join(cachedir, os.path.normpath(bank) + '.p')
+        log.debug('... trying from bank "%s", key_file "%s" ...', bank, key_file)
         inkey = True
 
     if not os.path.isfile(key_file):
         log.debug('Cache file "%s" does not exist', key_file)
         return {}
+
+    log.debug('Cache file "%s" found', key_file)
     try:
         with salt.utils.files.fopen(key_file, 'rb') as fh_:
+            loaded_cache = __context__['serial'].load(fh_)
+            log.debug('All cache keys: %s', loaded_cache.keys())
             if inkey:
-                return __context__['serial'].load(fh_)[key]
+                log.debug('Returning "%s" from key_file "%s" (inkey)', key, key_file)
+                return loaded_cache[key]
             else:
-                return __context__['serial'].load(fh_)
+                log.debug('Returning key_file "%s"', key_file)
+                return loaded_cache
     except IOError as exc:
         raise SaltCacheError(
             'There was an error reading the cache file "{0}": {1}'.format(

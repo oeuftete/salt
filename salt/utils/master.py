@@ -222,6 +222,7 @@ class MasterPillarUtil(object):
             minion_ids = self.cache.list('minions')
         for minion_id in minion_ids:
             if not salt.utils.verify.valid_id(self.opts, minion_id):
+                log.debug('Could not verify minion: %s', minion_id)
                 continue
             mdata = self.cache.fetch('minions/{0}'.format(minion_id), 'data')
             if not isinstance(mdata, dict):
@@ -232,8 +233,10 @@ class MasterPillarUtil(object):
                 )
                 continue
             if 'grains' in mdata:
+                log.debug('Found cached grains for minion: %s', minion_id)
                 grains[minion_id] = mdata['grains']
             if 'pillar' in mdata:
+                log.debug('Found cached pillar for minion: %s', minion_id)
                 pillars[minion_id] = mdata['pillar']
         return grains, pillars
 
