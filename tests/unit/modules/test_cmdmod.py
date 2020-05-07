@@ -6,6 +6,7 @@
 # Import python libs
 from __future__ import absolute_import, print_function, unicode_literals
 
+import getpass
 import os
 import sys
 import tempfile
@@ -461,7 +462,7 @@ class CMDMODTestCase(TestCase, LoaderModuleMockMixin):
         """
         cmd = "pwd"
         cwd = "/tmp"
-        runas = os.getlogin()
+        runas = getpass.getuser()
 
         with patch.dict(cmdmod.__grains__, {"os": "Darwin", "os_family": "Solaris"}):
             stdout = cmdmod._run(cmd, cwd=cwd, runas=runas).get("stdout")

@@ -34,8 +34,10 @@ class CMDModuleTest(ModuleCase):
 
     def setUp(self):
         self.runas_usr = "nobody"
+        self.runas_grp = "nogroup"  # TODO: probably not ok everywhere
         if salt.utils.platform.is_darwin():
             self.runas_usr = "macsalttest"
+            self.runas_grp = "staff"
 
     @contextmanager
     def _ensure_user_exists(self, name):
@@ -459,15 +461,40 @@ class CMDModuleTest(ModuleCase):
     @skip_if_not_root
     @destructiveTest
     @slowTest
-    def test_runas(self):
+    def test_runas_user(self):
         """
-        Ensure that the env is the runas user's
+        Ensure that the user is the runas user's
         """
         with self._ensure_user_exists(self.runas_usr):
+            out = self.run_function("cmd.run", ["id", "-un"], runas=self.runas_usr)
+        self.assertEqual(self.runas_usr, out)
+
+    @skipIf(salt.utils.platform.is_windows(), "minion is windows")
+    @skip_if_not_root
+    @destructiveTest
+    @slowTest
+    def test_runas_default_group(self):
+        """
+        Ensure that the default group is the runas user's
+        """
+        with self._ensure_user_exists(self.runas_usr):
+            out = self.run_function("cmd.run", ["id", "-gn"], runas=self.runas_usr)
+        self.assertEqual(self.runas_grp, out)
+
+    @skipIf(salt.utils.platform.is_windows(), "minion is windows")
+    @skip_if_not_root
+    @destructiveTest
+    @slowTest
+    def test_runas_explicit_group(self):
+        """
+        Ensure that an explicit group is used with run
+        """
+        explicit_group = "root"
+        with self._ensure_user_exists(self.runas_usr):
             out = self.run_function(
-                "cmd.run", ["env"], runas=self.runas_usr
-            ).splitlines()
-        self.assertIn("USER={0}".format(self.runas_usr), out)
+                "cmd.run", ["id", "-gn"], runas=self.runas_usr, group=explicit_group
+            )
+        self.assertEqual(explicit_group, out)
 
     @skipIf(not salt.utils.path.which_bin("sleep"), "sleep cmd not installed")
     def test_timeout(self):

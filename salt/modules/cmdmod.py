@@ -454,18 +454,23 @@ def _run(
         # hang.
         runas = None
 
+    has_sudo = which_bin(["sudo"])
     if runas:
         # Save the original command before munging it
         try:
             pwd.getpwnam(runas)
         except KeyError:
             raise CommandExecutionError("User '{0}' is not available".format(runas))
+        if not has_sudo:
+            log.warning(
+                "Setting command group requires sudo. The salt process's group will be used."
+            )
 
     if group:
         if salt.utils.platform.is_windows():
             msg = "group is not currently available on Windows"
             raise SaltInvocationError(msg)
-        if not which_bin(["sudo"]):
+        if not has_sudo:
             msg = "group argument requires sudo but not found"
             raise CommandExecutionError(msg)
         try:
@@ -496,6 +501,10 @@ def _run(
                 # runas is optional if use_sudo is set.
                 if runas:
                     env_cmd.extend(["-u", runas])
+                    if not group:
+                        group = "#{0}".format(
+                            __salt__["user.info"](runas).get("gid", 0)
+                        )
                 if group:
                     env_cmd.extend(["-g", group])
                 if shell != DEFAULT_SHELL:
