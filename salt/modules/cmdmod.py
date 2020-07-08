@@ -278,6 +278,8 @@ def _run(cmd,
     '''
     Do the DRY thing and only call subprocess.Popen() once
     '''
+
+    log.trace('ZD-5409: cmdmod _run args: %s', locals())
     if 'pillar' in kwargs and not pillar_override:
         pillar_override = kwargs['pillar']
     if _is_valid_shell(shell) is False:
@@ -287,6 +289,8 @@ def _run(cmd,
             shell
         )
 
+    log.debug('ZD-5409: Overriding output_loglevel from %s to %s', output_loglevel, 'debug')
+    output_loglevel = 'debug'
     output_loglevel = _check_loglevel(output_loglevel)
     log_callback = _check_cb(log_callback)
 
@@ -347,7 +351,9 @@ def _run(cmd,
             cmd = 'Powershell -NonInteractive -NoProfile "{0}"'.format(cmd.replace('"', '\\"'))
 
     # munge the cmd and cwd through the template
+    log.trace('ZD-5409: cmdmod _run: pre _render_cmd')
     (cmd, cwd) = _render_cmd(cmd, cwd, template, saltenv, pillarenv, pillar_override)
+    log.trace('ZD-5409: cmdmod _run: post _render_cmd')
 
     ret = {}
 
@@ -359,7 +365,9 @@ def _run(cmd,
                 'The shell command "{0}" is not permitted'.format(cmd)
             )
 
+    log.trace('ZD-5409: cmdmod _run: pre _render_cmd')
     env = _parse_env(env)
+    log.trace('ZD-5409: cmdmod _run: post _render_cmd')
 
     for bad_env_key in (x for x, y in six.iteritems(env) if y is None):
         log.error('Environment variable \'%s\' passed without a value. '
@@ -599,6 +607,7 @@ def _run(cmd,
 
     if not use_vt:
         # This is where the magic happens
+        log.trace('ZD-5409: Spawning process...')
         try:
             proc = salt.utils.timed_subprocess.TimedProc(cmd, **kwargs)
         except (OSError, IOError) as exc:
@@ -622,6 +631,7 @@ def _run(cmd,
                 msg += 'unknown'
             raise CommandExecutionError(msg)
 
+        log.trace('ZD-5409: Running process...')
         try:
             proc.run()
         except TimedProcTimeoutError as exc:
@@ -633,6 +643,7 @@ def _run(cmd,
             ret['retcode'] = 1
             return ret
 
+        log.trace('ZD-5409: Processing output...')
         if output_loglevel != 'quiet' and output_encoding is not None:
             log.debug('Decoding output from command %s using %s encoding',
                       cmd, output_encoding)

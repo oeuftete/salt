@@ -1409,6 +1409,7 @@ def _linux_bin_exists(binary):
     '''
     Does a binary exist in linux (depends on which, type, or whereis)
     '''
+    log.trace('ZD-5409: Checking for existence of %s', binary)
     for search_cmd in ('which', 'type -ap'):
         try:
             return __salt__['cmd.retcode'](
@@ -1583,9 +1584,11 @@ def os_data():
         if _linux_bin_exists('systemctl') and _linux_bin_exists('localectl'):
             log.trace('Adding systemd grains')
             grains['systemd'] = {}
+            log.trace('ZD-5409: ... pre cmd.run')
             systemd_info = __salt__['cmd.run'](
                 'systemctl --version'
             ).splitlines()
+            log.trace('ZD-5409: ... post cmd.run')
             grains['systemd']['version'] = systemd_info[0].split()[1]
             grains['systemd']['features'] = systemd_info[1]
 
