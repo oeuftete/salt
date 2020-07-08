@@ -1,3 +1,5 @@
+.nox
+
 /build
 /src
 *.py[co]
