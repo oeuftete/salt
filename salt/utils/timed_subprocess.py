@@ -4,6 +4,8 @@ For running command line executables with a timeout
 '''
 from __future__ import absolute_import, print_function, unicode_literals
 
+import logging
+import resource
 import shlex
 import subprocess
 import threading
@@ -12,12 +14,17 @@ import salt.utils.data
 from salt.ext import six
 
 
+log = logging.getLogger(__name__)
+
+
 class TimedProc(object):
     '''
     Create a TimedProc object, calls subprocess.Popen with passed args and **kwargs
     '''
     def __init__(self, args, **kwargs):
 
+        log.trace('ZD-5409: TimedProc __init__ args: %s', locals())
+        log.trace('ZD-5409: RLIMIT_NOFILE: %s', resource.getrlimit(resource.RLIMIT_NOFILE))
         self.wait = not kwargs.pop('bg', False)
         self.stdin = kwargs.pop('stdin', None)
         self.with_communicate = kwargs.pop('with_communicate', self.wait)
@@ -44,8 +51,11 @@ class TimedProc(object):
             args = salt.utils.data.decode(args, to_str=True)
 
         try:
+            log.trace('ZD-5409: subprocess.Popen...')
             self.process = subprocess.Popen(args, **kwargs)
+            log.trace('ZD-5409: ... subprocess.Popen returned')
         except (AttributeError, TypeError):
+            log.trace('ZD-5409: subprocess.Popen exception caught')
             if not kwargs.get('shell', False):
                 if not isinstance(args, (list, tuple)):
                     try:
@@ -74,7 +84,9 @@ class TimedProc(object):
                 # problems with subprocess.
                 kwargs['env'] = salt.utils.data.encode_dict(kwargs['env'])
             args = salt.utils.data.decode(args)
+            log.trace('ZD-5409: subprocess.Popen (in exception)...')
             self.process = subprocess.Popen(args, **kwargs)
+            log.trace('ZD-5409: ... subprocess.Popen (in exception) returned')
         self.command = args
 
     def run(self):
