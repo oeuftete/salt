@@ -5,6 +5,7 @@ For running command line executables with a timeout
 from __future__ import absolute_import, print_function, unicode_literals
 
 import logging
+import os
 import resource
 import shlex
 import subprocess
@@ -15,6 +16,23 @@ from salt.ext import six
 
 
 log = logging.getLogger(__name__)
+
+orig_popen__close_fds = subprocess.Popen._close_fds
+
+
+try:
+    MAXFD = os.sysconf(str("SC_OPEN_MAX"))
+except:
+    MAXFD = 256
+
+
+def _patch_popen__close_fds(self, but):
+    log.trace('ZD-5409: Entering subprocess.Popen._close_fds (MAXFD=%s, but=%s)...', MAXFD, but)
+    orig_popen__close_fds(self, but)
+    log.trace('ZD-5409: ... exiting subprocess.Popen._close_fds')
+
+
+subprocess.Popen._close_fds = _patch_popen__close_fds
 
 
 class TimedProc(object):
@@ -52,6 +70,8 @@ class TimedProc(object):
 
         try:
             log.trace('ZD-5409: subprocess.Popen...')
+            log.trace('ZD-5409:   args: %s', args)
+            log.trace('ZD-5409:   kwargs: %s', kwargs)
             self.process = subprocess.Popen(args, **kwargs)
             log.trace('ZD-5409: ... subprocess.Popen returned')
         except (AttributeError, TypeError):
