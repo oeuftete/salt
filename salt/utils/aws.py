@@ -590,7 +590,10 @@ def get_region_from_metadata():
             timeout=AWS_METADATA_TIMEOUT,
         )
     except requests.exceptions.RequestException:
-        log.warning("Failed to get AWS region from instance metadata.", exc_info=True)
+        log.warning(
+            "Failed to get AWS region from instance metadata. Is this an AWS machine?",
+            exc_info_on_loglevel=logging.DEBUG,
+        )
         # Do not try again
         __Location__ = "do-not-get-from-metadata"
         return None
