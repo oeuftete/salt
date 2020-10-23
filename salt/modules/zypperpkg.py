@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Package support for openSUSE via the zypper package manager
 
@@ -12,19 +11,18 @@ Package support for openSUSE via the zypper package manager
 
 """
 
-# Import python libs
-from __future__ import absolute_import, print_function, unicode_literals
 
+import configparser
 import datetime
 import fnmatch
 import logging
 import os
 import re
 import time
+from urllib.parse import urlparse
 from xml.dom import minidom as dom
 from xml.parsers.expat import ExpatError
 
-# Import salt libs
 import salt.utils.data
 import salt.utils.environment
 import salt.utils.event
@@ -37,23 +35,14 @@ import salt.utils.stringutils
 import salt.utils.systemd
 import salt.utils.versions
 from salt.exceptions import CommandExecutionError, MinionError, SaltInvocationError
-
-# Import 3rd-party libs
-# pylint: disable=import-error,redefined-builtin,no-name-in-module
-from salt.ext import six
-from salt.ext.six.moves import configparser
-from salt.ext.six.moves.urllib.parse import urlparse as _urlparse
 from salt.utils.versions import LooseVersion
-
-# pylint: enable=import-error,redefined-builtin,no-name-in-module
-
 
 log = logging.getLogger(__name__)
 
 HAS_ZYPP = False
 ZYPP_HOME = "/etc/zypp"
-LOCKS = "{0}/locks".format(ZYPP_HOME)
-REPOS = "{0}/repos.d".format(ZYPP_HOME)
+LOCKS = "{}/locks".format(ZYPP_HOME)
+REPOS = "{}/repos.d".format(ZYPP_HOME)
 DEFAULT_PRIORITY = 99
 PKG_ARCH_SEPARATOR = "."
 
@@ -76,7 +65,7 @@ def __virtual__():
     return __virtualname__
 
 
-class _Zypper(object):
+class _Zypper:
     """
     Zypper parallel caller.
     Validates the result and either raises an exception or reports an error.
@@ -340,7 +329,7 @@ class _Zypper(object):
                             attrs=["pid", "name", "cmdline", "create_time"],
                         )
                         data["cmdline"] = " ".join(data["cmdline"])
-                        data["info"] = "Blocking process created at {0}.".format(
+                        data["info"] = "Blocking process created at {}.".format(
                             datetime.datetime.utcfromtimestamp(
                                 data["create_time"]
                             ).isoformat()
@@ -348,7 +337,7 @@ class _Zypper(object):
                         data["success"] = True
                 except Exception as err:  # pylint: disable=broad-except
                     data = {
-                        "info": "Unable to retrieve information about blocking process: {0}".format(
+                        "info": "Unable to retrieve information about blocking process: {}".format(
                             err.message
                         ),
                         "success": False,
@@ -383,7 +372,7 @@ class _Zypper(object):
             )
         if self.error_msg and not self.__no_raise and not self.__ignore_repo_failure:
             raise CommandExecutionError(
-                "Zypper command failure: {0}".format(self.error_msg)
+                "Zypper command failure: {}".format(self.error_msg)
             )
 
         return (
@@ -398,7 +387,7 @@ class _Zypper(object):
 __zypper__ = _Zypper()
 
 
-class Wildcard(object):
+class Wildcard:
     """
     .. versionadded:: 2017.7.0
 
@@ -440,7 +429,7 @@ class Wildcard(object):
                     for vrs in self._get_scope_versions(self._get_available_versions())
                 ]
             )
-            return versions and "{0}{1}".format(self._op or "", versions[-1]) or None
+            return versions and "{}{}".format(self._op or "", versions[-1]) or None
 
     def _get_available_versions(self):
         """
@@ -452,17 +441,15 @@ class Wildcard(object):
         ).getElementsByTagName("solvable")
         if not solvables:
             raise CommandExecutionError(
-                "No packages found matching '{0}'".format(self.name)
+                "No packages found matching '{}'".format(self.name)
             )
 
         return sorted(
-            set(
-                [
-                    slv.getAttribute(self._attr_solvable_version)
-                    for slv in solvables
-                    if slv.getAttribute(self._attr_solvable_version)
-                ]
-            )
+            {
+                slv.getAttribute(self._attr_solvable_version)
+                for slv in solvables
+                if slv.getAttribute(self._attr_solvable_version)
+            }
         )
 
     def _get_scope_versions(self, pkg_versions):
@@ -490,7 +477,7 @@ class Wildcard(object):
         self._op = version.replace(exact_version, "") or None
         if self._op and self._op not in self.Z_OP:
             raise CommandExecutionError(
-                'Zypper do not supports operator "{0}".'.format(self._op)
+                'Zypper do not supports operator "{}".'.format(self._op)
             )
         self.version = exact_version
 
@@ -540,14 +527,14 @@ def list_upgrades(refresh=True, root=None, **kwargs):
     cmd = ["list-updates"]
     if "fromrepo" in kwargs:
         repos = kwargs["fromrepo"]
-        if isinstance(repos, six.string_types):
+        if isinstance(repos, str):
             repos = [repos]
         for repo in repos:
             cmd.extend(
                 [
                     "--repo",
-                    repo if isinstance(repo, six.string_types) else six.text_type(repo),
-                ]
+                    repo if isinstance(repo, str) else str(repo),
+                ]  # pylint: disable=missing-whitespace-after-comma
             )
         log.debug("Targeting repos: %s", repos)
     for update_node in (
@@ -611,7 +598,7 @@ def info_installed(*names, **kwargs):
         for _nfo in pkg_nfo:
             t_nfo = dict()
             # Translate dpkg-specific keys to a common structure
-            for key, value in six.iteritems(_nfo):
+            for key, value in _nfo.items():
                 if key == "source_rpm":
                     t_nfo["source"] = value
                 else:
@@ -1034,9 +1021,7 @@ def list_repo_pkgs(*args, **kwargs):
     fromrepo = kwargs.pop("fromrepo", "") or ""
     ret = {}
 
-    targets = [
-        arg if isinstance(arg, six.string_types) else six.text_type(arg) for arg in args
-    ]
+    targets = [arg if isinstance(arg, str) else str(arg) for arg in args]
 
     def _is_match(pkgname):
         """
@@ -1125,7 +1110,7 @@ def _get_repo_info(alias, repos_cfg=None, root=None):
     try:
         meta = dict((repos_cfg or _get_configured_repos(root=root)).items(alias))
         meta["alias"] = alias
-        for key, val in six.iteritems(meta):
+        for key, val in meta.items():
             if val in ["0", "1"]:
                 meta[key] = int(meta[key]) == 1
             elif val == "NONE":
@@ -1198,7 +1183,7 @@ def del_repo(repo, root=None):
                     "message": msg[0].childNodes[0].nodeValue,
                 }
 
-    raise CommandExecutionError("Repository '{0}' not found.".format(repo))
+    raise CommandExecutionError("Repository '{}' not found.".format(repo))
 
 
 def mod_repo(repo, **kwargs):
@@ -1253,13 +1238,13 @@ def mod_repo(repo, **kwargs):
         url = kwargs.get("url", kwargs.get("mirrorlist", kwargs.get("baseurl")))
         if not url:
             raise CommandExecutionError(
-                "Repository '{0}' not found, and neither 'baseurl' nor "
+                "Repository '{}' not found, and neither 'baseurl' nor "
                 "'mirrorlist' was specified".format(repo)
             )
 
-        if not _urlparse(url).scheme:
+        if not urlparse(url).scheme:
             raise CommandExecutionError(
-                "Repository '{0}' not found and URL for baseurl/mirrorlist "
+                "Repository '{}' not found and URL for baseurl/mirrorlist "
                 "is malformed".format(repo)
             )
 
@@ -1268,9 +1253,9 @@ def mod_repo(repo, **kwargs):
             repo_meta = _get_repo_info(alias, repos_cfg=repos_cfg, root=root)
 
             # Complete user URL, in case it is not
-            new_url = _urlparse(url)
+            new_url = urlparse(url)
             if not new_url.path:
-                new_url = _urlparse.ParseResult(
+                new_url = urlparse.ParseResult(
                     scheme=new_url.scheme,  # pylint: disable=E1123
                     netloc=new_url.netloc,
                     path="/",
@@ -1278,11 +1263,11 @@ def mod_repo(repo, **kwargs):
                     query=new_url.query,
                     fragment=new_url.fragment,
                 )
-            base_url = _urlparse(repo_meta["baseurl"])
+            base_url = urlparse(repo_meta["baseurl"])
 
             if new_url == base_url:
                 raise CommandExecutionError(
-                    "Repository '{0}' already exists as '{1}'.".format(repo, alias)
+                    "Repository '{}' already exists as '{}'.".format(repo, alias)
                 )
 
         # Add new repo
@@ -1292,7 +1277,7 @@ def mod_repo(repo, **kwargs):
         repos_cfg = _get_configured_repos(root=root)
         if repo not in repos_cfg.sections():
             raise CommandExecutionError(
-                "Failed add new repository '{0}' for unspecified reason. "
+                "Failed add new repository '{}' for unspecified reason. "
                 "Please check zypper logs.".format(repo)
             )
         added = True
@@ -1328,12 +1313,10 @@ def mod_repo(repo, **kwargs):
         cmd_opt.append(kwargs["gpgcheck"] and "--gpgcheck" or "--no-gpgcheck")
 
     if "priority" in kwargs:
-        cmd_opt.append(
-            "--priority={0}".format(kwargs.get("priority", DEFAULT_PRIORITY))
-        )
+        cmd_opt.append("--priority={}".format(kwargs.get("priority", DEFAULT_PRIORITY)))
 
     if "humanname" in kwargs:
-        cmd_opt.append("--name='{0}'".format(kwargs.get("humanname")))
+        cmd_opt.append("--name='{}'".format(kwargs.get("humanname")))
 
     if kwargs.get("gpgautoimport") is True:
         global_cmd_opt.append("--gpg-auto-import-keys")
@@ -1590,7 +1573,7 @@ def install(
 
     if pkg_type == "repository":
         targets = []
-        for param, version_num in six.iteritems(pkg_params):
+        for param, version_num in pkg_params.items():
             if version_num is None:
                 log.debug("targeting package: %s", param)
                 targets.append(param)
@@ -1598,7 +1581,7 @@ def install(
                 prefix, verstr = salt.utils.pkg.split_comparison(version_num)
                 if not prefix:
                     prefix = "="
-                target = "{0}{1}{2}".format(param, prefix, verstr)
+                target = "{}{}{}".format(param, prefix, verstr)
                 log.debug("targeting package: %s", target)
                 targets.append(target)
     elif pkg_type == "advisory":
@@ -1607,7 +1590,7 @@ def install(
         for advisory_id in pkg_params:
             if advisory_id not in cur_patches:
                 raise CommandExecutionError(
-                    'Advisory id "{0}" not found'.format(advisory_id)
+                    'Advisory id "{}" not found'.format(advisory_id)
                 )
             else:
                 # If we add here the `patch:` prefix, the
@@ -1704,7 +1687,7 @@ def install(
 
     if errors:
         raise CommandExecutionError(
-            "Problem encountered {0} package(s)".format(
+            "Problem encountered {} package(s)".format(
                 "downloading" if downloadonly else "installing"
             ),
             info={"errors": errors, "changes": ret},
@@ -1798,7 +1781,7 @@ def upgrade(
         cmd_update.append("--dry-run")
 
     if fromrepo:
-        if isinstance(fromrepo, six.string_types):
+        if isinstance(fromrepo, str):
             fromrepo = [fromrepo]
         for repo in fromrepo:
             cmd_update.extend(["--from" if dist_upgrade else "--repo", repo])
@@ -2053,7 +2036,7 @@ def list_locks(root=None):
                         )
                 if lock.get("solvable_name"):
                     locks[lock.pop("solvable_name")] = lock
-    except IOError:
+    except OSError:
         pass
     except Exception:  # pylint: disable=broad-except
         log.warning("Detected a problem when accessing {}".format(_locks))
@@ -2124,10 +2107,10 @@ def unhold(name=None, pkgs=None, **kwargs):
     for pkg in pkgs:
         if locks.get(pkg):
             removed.append(pkg)
-            ret[pkg]["comment"] = "Package {0} is no longer held.".format(pkg)
+            ret[pkg]["comment"] = "Package {} is no longer held.".format(pkg)
         else:
             missing.append(pkg)
-            ret[pkg]["comment"] = "Package {0} unable to be unheld.".format(pkg)
+            ret[pkg]["comment"] = "Package {} unable to be unheld.".format(pkg)
 
     if removed:
         __zypper__.call("rl", *removed)
@@ -2213,9 +2196,9 @@ def hold(name=None, pkgs=None, **kwargs):
         ret[pkg] = {"name": pkg, "changes": {}, "result": False, "comment": ""}
         if not locks.get(pkg):
             added.append(pkg)
-            ret[pkg]["comment"] = "Package {0} is now being held.".format(pkg)
+            ret[pkg]["comment"] = "Package {} is now being held.".format(pkg)
         else:
-            ret[pkg]["comment"] = "Package {0} is already set to be held.".format(pkg)
+            ret[pkg]["comment"] = "Package {} is already set to be held.".format(pkg)
 
     if added:
         __zypper__.call("al", *added)
@@ -2598,7 +2581,7 @@ def search(criteria, refresh=False, **kwargs):
         .getElementsByTagName("solvable")
     )
     if not solvables:
-        raise CommandExecutionError("No packages found matching '{0}'".format(criteria))
+        raise CommandExecutionError("No packages found matching '{}'".format(criteria))
 
     out = {}
     for solvable in solvables:
@@ -2752,13 +2735,13 @@ def download(*packages, **kwargs):
         if failed:
             pkg_ret[
                 "_error"
-            ] = "The following package(s) failed to download: {0}".format(
+            ] = "The following package(s) failed to download: {}".format(
                 ", ".join(failed)
             )
         return pkg_ret
 
     raise CommandExecutionError(
-        "Unable to download packages: {0}".format(", ".join(packages))
+        "Unable to download packages: {}".format(", ".join(packages))
     )
 
 
@@ -2829,7 +2812,7 @@ def diff(*paths, **kwargs):
 
     if pkg_to_paths:
         local_pkgs = __salt__["pkg.download"](*pkg_to_paths.keys(), **kwargs)
-        for pkg, files in six.iteritems(pkg_to_paths):
+        for pkg, files in pkg_to_paths.items():
             for path in files:
                 ret[path] = (
                     __salt__["lowpkg.diff"](local_pkgs[pkg]["path"], path)
