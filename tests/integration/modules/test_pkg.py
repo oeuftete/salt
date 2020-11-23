@@ -34,6 +34,8 @@ class PkgModuleTest(ModuleCase, SaltReturnAssertsMixin):
             cls.pkg = "putty"
         elif grains["os_family"] == "RedHat":
             cls.pkg = "units"
+        elif grains["os_family"] == "VMware Photon OS":
+            cls.pkg = "snoopy"
 
     @skip_if_not_root
     @requires_salt_modules("pkg.refresh_db")
@@ -108,7 +110,7 @@ class PkgModuleTest(ModuleCase, SaltReturnAssertsMixin):
                         pprint.pformat(ret)
                     ),
                 )
-            elif grains["os_family"] == "RedHat":
+            elif grains["os_family"] in ("RedHat", "VMware Photon OS"):
                 repo = "saltstack"
                 name = "SaltStack repo for RHEL/CentOS {}".format(
                     grains["osmajorrelease"]
@@ -150,7 +152,7 @@ class PkgModuleTest(ModuleCase, SaltReturnAssertsMixin):
         os_grain = self.run_function("grains.item", ["os"])["os"]
         repo = None
         try:
-            if os_grain in ["CentOS", "RedHat"]:
+            if os_grain in ["CentOS", "RedHat", "VMware Photon OS"]:
                 my_baseurl = (
                     "http://my.fake.repo/foo/bar/\n http://my.fake.repo.alt/foo/bar/"
                 )
@@ -242,6 +244,10 @@ class PkgModuleTest(ModuleCase, SaltReturnAssertsMixin):
             test_remove()
 
     @destructiveTest
+    @skipIf(
+        salt.utils.platform.is_photonos(),
+        "package hold/unhold unsupported on Photon OS",
+    )
     @requires_salt_modules(
         "pkg.hold",
         "pkg.unhold",
@@ -317,7 +323,7 @@ class PkgModuleTest(ModuleCase, SaltReturnAssertsMixin):
                 "Upstream repo did not return coherent results: {}".format(ret)
             )
 
-        if grains["os_family"] == "RedHat":
+        if grains["os_family"] in ("RedHat", "VMWare Photon OS"):
             self.assertIn(ret, (True, None))
         elif grains["os_family"] == "Suse":
             if not isinstance(ret, dict):
