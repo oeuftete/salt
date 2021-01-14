@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-    :codeauthor: Jayesh Kariya <jayeshk@saltstack.com>
-"""
 
 # Import Python Libs
 from __future__ import absolute_import, print_function, unicode_literals
@@ -25,9 +22,9 @@ class MockKernel32(object):
     @staticmethod
     def GetLogicalDrives():
         """
-        Mock GetLogicalDrives method
+        Mock GetLogicalDrives method to return C, D, and F.
         """
-        return 1
+        return int("101100", 2)
 
 
 class MockWindll(object):
@@ -56,7 +53,8 @@ class WinDiskTestCase(TestCase, LoaderModuleMockMixin):
     def setup_loader_modules(self):
         return {win_disk: {"ctypes": MockCtypes()}}
 
-    # 'usage' function tests: 1
+    def test_letters(self):
+        self.assertListEqual(win_disk.letters(), ["C", "D", "F"])
 
     def test_usage(self):
         """
@@ -65,12 +63,26 @@ class WinDiskTestCase(TestCase, LoaderModuleMockMixin):
         self.assertDictEqual(
             win_disk.usage(),
             {
-                "A:\\": {
+                "C:\\": {
                     "available": None,
                     "1K-blocks": None,
                     "used": None,
                     "capacity": None,
-                    "filesystem": "A:\\",
-                }
+                    "filesystem": "C:\\",
+                },
+                "D:\\": {
+                    "available": None,
+                    "1K-blocks": None,
+                    "used": None,
+                    "capacity": None,
+                    "filesystem": "D:\\",
+                },
+                "F:\\": {
+                    "available": None,
+                    "1K-blocks": None,
+                    "used": None,
+                    "capacity": None,
+                    "filesystem": "F:\\",
+                },
             },
         )
